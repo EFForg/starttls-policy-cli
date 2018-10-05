@@ -3,7 +3,7 @@
 import datetime
 from functools import partial
 import six
-from dateutil import parser # Dependency: python-dateutil
+from dateutil import parser, tz # Dependency: python-dateutil
 
 
 class ConfigError(ValueError):
@@ -66,6 +66,10 @@ def parse_valid_date(date):
         return parser.parse(date)
     except (TypeError, ValueError):
         raise ConfigError("Invalid date: {}".format(date))
+
+def is_expired(exp):
+    """ Checks if given expiration datetime is reached at this moment. """
+    return exp <= datetime.datetime.now(tz.tzutc())
 
 def get_properties(schema):
     """ Return the three properties we have to enforce for this schema.
