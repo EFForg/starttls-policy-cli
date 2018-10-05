@@ -1,12 +1,14 @@
 """
 Config generator
 """
+import sys
 import abc
 import os
 import six
 
 from starttls_policy import constants
 from starttls_policy import policy
+from starttls_policy import util
 
 class ConfigGenerator(object):
     # pylint: disable=useless-object-inheritance
@@ -33,11 +35,25 @@ class ConfigGenerator(object):
     def _write_config(self, result, output):
         six.print_(result, file=output)
 
+    def _expired_warning(self):
+        """Warns user about policy list expiration.
+        """
+        six.print_("\nACTION REQUIRED: your policy list at {config_location} has expired! "
+                   "Generating empty config.\n"
+                   "Check to see whether your update mechanism "
+                   "(cronjob, systemd timer) is working.\n"
+                       .format(config_location=self._policy_filename),
+                   file=sys.stderr)
+
     def generate(self):
         """Generates and dumps MTA configuration file to `policy_dir`.
         """
         policy_list = self._load_config()
-        result = self._generate(policy_list)
+        if util.is_expired(policy_list.expires):
+            self._expired_warning()
+            result = self._generate_expired_fallback(policy_list)
+        else:
+            result = self._generate(policy_list)
         with open(self._config_filename, "w") as config_file:
             self._write_config(result, config_file)
 
@@ -52,6 +68,11 @@ class ConfigGenerator(object):
     @abc.abstractmethod
     def _generate(self, policy_list):
         """Creates configuration file. Returns a unicode string (text to write to file)."""
+
+    @abc.abstractmethod
+    def _generate_expired_fallback(self, policy_list):
+        """Creates configuration file for expired policy list.
+        Returns a unicode string (text to write to file)."""
 
     @abc.abstractmethod
     def _instruct_string(self):
@@ -84,6 +105,9 @@ class PostfixGenerator(ConfigGenerator):
         for domain, tls_policy in sorted(six.iteritems(policy_list)):
             policies.append(_policy_for_domain(domain, tls_policy, max_domain_len))
         return "\n".join(policies)
+
+    def _generate_expired_fallback(self, policy_list):
+        return "# Policy list is outdated. Falling back to opportunistic encryption."
 
     def _instruct_string(self):
         filename = self._config_filename
