@@ -14,7 +14,7 @@ install_requires = [
 ]
 
 setup(
-    name='starttls_policy',
+    name='starttls_policy_cli',
     version=version,
     description="Policy API for STARTTLS Preload",
     url='https://github.com/EFForg/starttls-everywhere',
@@ -54,7 +54,7 @@ setup(
     },
     entry_points={
         'console_scripts': [
-            'starttls-policy = starttls_policy.main:main',
+            'starttls-policy-cli = starttls_policy_cli.main:main',
         ],
     }
 )
