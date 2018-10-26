@@ -3,7 +3,7 @@ import unittest
 import sys
 import mock
 
-from starttls_policy import main
+from starttls_policy_cli import main
 
 class TestArguments(unittest.TestCase):
     """Testing argument parser"""
@@ -52,7 +52,7 @@ class TestPerform(unittest.TestCase):
         parser.error = mock.MagicMock(side_effect=Exception)
         self.assertRaises(Exception, main._perform, parser.parse_args(), parser)
 
-    @mock.patch("starttls_policy.main._ensure_directory")
+    @mock.patch("starttls_policy_cli.main._ensure_directory")
     def test_generate(self, ensure_directory):
         # pylint: disable=protected-access, unused-argument
         main.GENERATORS = {"exists": mock.MagicMock()}

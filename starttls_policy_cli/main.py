@@ -2,7 +2,7 @@
 import argparse
 import os
 
-from starttls_policy import configure
+from starttls_policy_cli import configure
 
 GENERATORS = {
     "postfix": configure.PostfixGenerator,

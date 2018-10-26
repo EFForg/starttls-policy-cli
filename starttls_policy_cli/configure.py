@@ -6,9 +6,9 @@ import abc
 import os
 import six
 
-from starttls_policy import constants
-from starttls_policy import policy
-from starttls_policy import util
+from starttls_policy_cli import constants
+from starttls_policy_cli import policy
+from starttls_policy_cli import util
 
 class ConfigGenerator(object):
     # pylint: disable=useless-object-inheritance

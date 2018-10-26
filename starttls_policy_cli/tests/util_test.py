@@ -2,7 +2,7 @@
 import unittest
 from functools import partial
 
-from starttls_policy import util
+from starttls_policy_cli import util
 
 class TestEnforceUtil(unittest.TestCase):
     """ Unittests for "enforcer" functions."""

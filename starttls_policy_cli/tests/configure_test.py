@@ -6,8 +6,8 @@ import os
 
 import mock
 
-from starttls_policy import configure
-from starttls_policy.tests.util import param, parametrize_over
+from starttls_policy_cli import configure
+from starttls_policy_cli.tests.util import param, parametrize_over
 
 class MockGenerator(configure.ConfigGenerator):
     """Mock config generator for testing"""
@@ -44,7 +44,7 @@ class TestConfigGenerator(unittest.TestCase):
     def test_manual_instructions(self):
         with TempPolicyDir(test_json) as testdir:
             generator = MockGenerator(testdir)
-            with mock.patch("starttls_policy.configure.six.print_") as mock_print:
+            with mock.patch("starttls_policy_cli.configure.six.print_") as mock_print:
                 generator.manual_instructions()
                 mock_print.assert_called_once_with("\n"
                     "--------------------------------------------------\n"

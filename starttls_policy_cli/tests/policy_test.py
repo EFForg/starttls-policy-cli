@@ -5,8 +5,8 @@ import datetime
 import json
 import mock
 
-from starttls_policy import policy
-from starttls_policy import util
+from starttls_policy_cli import policy
+from starttls_policy_cli import util
 
 test_json = '{\
     "author": "Electronic Frontier Foundation",\
@@ -43,7 +43,7 @@ class TestConfig(unittest.TestCase):
         self.conf.policies = {'eff.org': self.sample_policy}
 
     def test_flush(self):
-        with mock.patch("starttls_policy.policy.open", mock.mock_open()) as m:
+        with mock.patch("starttls_policy_cli.policy.open", mock.mock_open()) as m:
             self.conf.flush("lol.txt")
             m.assert_called_with("lol.txt", "w")
             m().write.assert_called_once()

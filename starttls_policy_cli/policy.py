@@ -5,8 +5,8 @@ import datetime
 import io
 import json
 import six
-from starttls_policy import util
-from starttls_policy import constants
+from starttls_policy_cli import util
+from starttls_policy_cli import constants
 
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.StreamHandler())
