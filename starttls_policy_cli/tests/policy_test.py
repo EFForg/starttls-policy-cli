@@ -4,9 +4,11 @@ import unittest
 import datetime
 import json
 import mock
+import dateutil.tz
 
 from starttls_policy_cli import policy
 from starttls_policy_cli import util
+from starttls_policy_cli.tests.util import assertRaisesRegex, param, parametrize_over
 
 test_json = '{\
     "author": "Electronic Frontier Foundation",\
@@ -22,7 +24,30 @@ test_json = '{\
         }\
     }'
 
+class TestConfigEncoder(unittest.TestCase):
+    """Tests extensions to JSON serializer for dumping configs"""
+
+    def encode_test(self, obj, expected):
+        """Parametrized test for JSON encoder"""
+        self.assertEqual(json.dumps(obj, sort_keys=True, cls=policy.ConfigEncoder), expected)
+
+parametrize_over(TestConfigEncoder, TestConfigEncoder.encode_test,
+                 [
+                    param("encode_none", None, "null"),
+                    param("encode_empty_list", [], "[]"),
+                    param("encode_empty_dict", {}, "{}"),
+                    param("encode_empty_string", "", '""'),
+                    param("encode_integer", 0, "0"),
+                    param("encode_true", True, "true"),
+                    param("encode_false", False, "false"),
+                    param("encode_float", .1, "0.1"),
+                    param("encode_datetime",
+                          datetime.datetime.fromtimestamp(0, tz=dateutil.tz.tzutc()),
+                          '"1970-01-01T00:00:00+0000"'),
+                 ])
+
 class TestConfig(unittest.TestCase):
+    # pylint: disable=too-many-public-methods
     """Testing configuration
     """
 
@@ -39,13 +64,18 @@ class TestConfig(unittest.TestCase):
             'mxs': ['example.com', '.example.com'],
             'mode': 'enforce'
         }
-        # If uncommented, the tests fail. TODO figure out why
         self.conf.policies = {'eff.org': self.sample_policy}
 
     def test_flush(self):
         with mock.patch("starttls_policy_cli.policy.open", mock.mock_open()) as m:
             self.conf.flush("lol.txt")
             m.assert_called_with("lol.txt", "w")
+            m().write.assert_called_once()
+
+    def test_flush_default(self):
+        with mock.patch("starttls_policy_cli.policy.open", mock.mock_open()) as m:
+            self.conf.flush()
+            m.assert_called_with(self.conf.filename, "w")
             m().write.assert_called_once()
 
     def test_merge_keeps_old_settings(self):
@@ -79,13 +109,38 @@ class TestConfig(unittest.TestCase):
         self.assertTrue('example.com' in new_conf.policies)
         self.assertFalse('eff.org' in new_conf.policies)
 
+    def test_should_update_invalid_type(self):
+        self.assertFalse(self.conf.should_update(None))
+
+    def test_should_update_valid_type(self):
+        conf2 = policy.Config()
+        conf2.policies = {'example.com': self.other_policy}
+        self.assertTrue(self.conf.should_update(conf2))
+
+    def test_updateble_checks_types(self):
+        with assertRaisesRegex(self, util.ConfigError,
+                                     "Attempting to update a "
+                                     "<class 'starttls_policy_cli.policy.Config'> "
+                                     "with a <(type|class) 'NoneType'>"):
+            self.conf.update(None)
+
+    def test_len_method(self):
+        conf2 = policy.Config()
+        conf2.policies = {'example.com': self.other_policy}
+        self.assertEqual(len(conf2), 1)
+
+    def test_keys_empty_policy(self):
+        conf2 = policy.Config()
+        with self.assertRaises(StopIteration):
+            next(iter(conf2.keys()))
+
     def test_basic_parsing(self):
         obj = json.loads(test_json)
         self.conf.load_from_dict(obj)
         self.assertEqual(self.conf.author, "Electronic Frontier Foundation")
         self.assertEqual(json.loads(self.conf.dump()), obj)
 
-    def test_timestamp_and_exipres_required(self):
+    def test_timestamp_and_expires_required(self):
         with self.assertRaises(util.ConfigError):
             policy.Config().load_from_dict({'expires': datetime.datetime.now()})
         with self.assertRaises(util.ConfigError):
@@ -150,6 +205,11 @@ class TestConfig(unittest.TestCase):
         with self.assertRaises(util.ConfigError):
             conf.policy_aliases = {'valid': {},
                                    'valid2': {'policy-alias': 'valid'}}
+
+    def test_bad_schema(self):
+        conf = policy.Config(schema={"author": "Author field here"})
+        with self.assertRaises(util.ConfigError):
+            conf.author = "Me"
 
 class TestPolicy(unittest.TestCase):
     """Testing policy configuration
@@ -242,10 +302,14 @@ class TestPolicy(unittest.TestCase):
         p.mxs = ['eff.org', '.eff.org']
         self.assertEqual(p.mxs, ['eff.org', '.eff.org'])
 
-    def test_no_alias_policy_cant_set_alias(self):
+    def test_no_alias_policy_setter(self):
         p = policy.PolicyNoAlias({}, aliases={'valid': self.sample_policy})
         with self.assertRaises(util.ConfigError):
             p.policy_alias = 'valid'
+
+    def test_no_alias_policy_getter(self):
+        p = policy.PolicyNoAlias({}, aliases={'valid': self.sample_policy})
+        self.assertIsNone(p.policy_alias)
 
 if __name__ == '__main__':
     unittest.main()
