@@ -1,7 +1,9 @@
 {
-    "author": "Electronic Frontier Foundation",
-    "comment": "你好世界",
+    "version": "0.1",
+    "author": "电子前哨基金会",
     "expires": 1404677353,
     "timestamp": 1401093333,
-    "tls-policies": {}
+    "pinsets": {},
+    "policy-aliases": {},
+    "policies": {}
 }
