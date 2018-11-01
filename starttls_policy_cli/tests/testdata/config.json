@@ -1,4 +1,5 @@
 {
+  "version": "0.1",
   "timestamp": "2014-06-06T14:30:16+00:00",
   "author": "Electronic Frontier Foundation https://eff.org",
   "expires": "2014-06-06T14:30:16+00:00",
@@ -13,7 +14,7 @@
   "policy-aliases": {
     "gmail": {
       "mode": "testing",
-      "report-uris": ["https://google.com/post/reports/here"],
+      "report": ["https://google.com/post/reports/here"],
       "mxs": [".mail.google.com"]
     }
   },
