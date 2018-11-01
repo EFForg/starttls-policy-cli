@@ -61,7 +61,7 @@ def parse_valid_date(date):
     if isinstance(date, datetime.datetime):
         return date
     if isinstance(date, int):
-        return datetime.datetime.fromtimestamp(date)
+        return datetime.datetime.fromtimestamp(date, tz.tzutc())
     try: # Fallback: try to parse a string-like
         return parser.parse(date)
     except (TypeError, ValueError):

@@ -24,7 +24,11 @@ class ConfigEncoder(json.JSONEncoder):
             return o.get_dict()
         if isinstance(o, datetime.datetime):
             return o.strftime('%Y-%m-%dT%H:%M:%S%z')
-        return json.JSONEncoder.default(self, o)
+        return json.JSONEncoder.default(self, o) # pragma: no cover
+        # Normally JSONEncoder.default() never returns, but raises TypeError,
+        # consumed by serializer-invocator.
+        # For this reason that line never completes and never included into coverage
+        # report.
 
 class MergableConfig(object):
     # pylint: disable=useless-object-inheritance
@@ -70,8 +74,7 @@ class MergableConfig(object):
         """Overwritable. If this function returns true, then any call to `update`
         will succeed.
         """
-        # pylint: disable=unused-argument
-        return True
+        return isinstance(newer_config, MergableConfig)
 
     def update(self, newer_config, merge=False):
         """Create a fresh config combining the new and old configs.
@@ -102,7 +105,7 @@ class MergableConfig(object):
         # make a note to not do that, consume it on the param list
         fresh_config = self.__class__(schema=self._schema)
         logger.debug('from parent update merge %s', merge)
-        if not isinstance(newer_config, self.__class__):
+        if not isinstance(newer_config, MergableConfig):
             raise util.ConfigError('Attempting to update a %s with a %s' % (
                 self.__class__,
                 newer_config.__class__))

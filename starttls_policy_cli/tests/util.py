@@ -27,3 +27,12 @@ def parametrize_over(cls, test, data):
                 return func(self, *args, **kwargs)
             return wrapped
         setattr(cls, test_name, _partial(test, *entry.args, **entry.kwargs))
+
+def assertRaisesRegex(testcase, exc, regex):
+    """Portable wrapper for method unittest.TestCase.assertRaisesRegexp which was
+    renamed to assertRaisesRegexp in Python 3"""
+    try:
+        meth = testcase.assertRaisesRegex
+    except AttributeError:
+        meth = testcase.assertRaisesRegexp
+    return meth(exc, regex)
