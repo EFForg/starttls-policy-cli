@@ -12,8 +12,8 @@ from starttls_policy_cli.tests.util import assertRaisesRegex, param, parametrize
 
 test_json = '{\
     "author": "Electronic Frontier Foundation",\
-        "expires": "2014-05-26T01:35:33",\
-        "timestamp": "2014-05-26T01:35:33",\
+        "expires": "2014-05-26T01:35:33+0000",\
+        "timestamp": "2014-05-26T01:35:33+0000",\
         "policies": {\
             ".valid.example-recipient.com": {\
                 "min-tls-version": "TLSv1.1",\
@@ -50,6 +50,8 @@ class TestConfig(unittest.TestCase):
     # pylint: disable=too-many-public-methods
     """Testing configuration
     """
+
+    maxDiff = None
 
     def setUp(self):
         self.conf = policy.Config()

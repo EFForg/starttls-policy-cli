@@ -59,13 +59,17 @@ def parse_valid_date(date):
     interpreted as seconds since the epoch) or a formatted
     string that `dateutils.parser` can understand."""
     if isinstance(date, datetime.datetime):
-        return date
-    if isinstance(date, int):
-        return datetime.datetime.fromtimestamp(date, tz.tzutc())
-    try: # Fallback: try to parse a string-like
-        return parser.parse(date)
-    except (TypeError, ValueError):
-        raise ConfigError("Invalid date: {}".format(date))
+        result = date
+    elif isinstance(date, int):
+        result = datetime.datetime.fromtimestamp(date, tz.tzutc())
+    else:
+        try: # Fallback: try to parse a string-like
+            result = parser.parse(date)
+        except (TypeError, ValueError):
+            raise ConfigError("Invalid date: {}".format(date))
+    if result.tzinfo is None or result.tzinfo.utcoffset(result) is None:
+        result = result.replace(tzinfo=tz.tzutc())
+    return result
 
 def is_expired(exp):
     """ Checks if given expiration datetime is reached at this moment. """

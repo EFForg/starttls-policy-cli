@@ -63,6 +63,12 @@ parametrize_over(TestEnforceUtil, TestEnforceUtil.parse_valid_date_test,
                     param("valid_string_date",
                           "2014-05-26T01:35:33+00:00",
                           datetime.datetime(2014, 5, 26, 1, 35, 33, tzinfo=tz.tzutc())),
+                    param("valid_string_date_notz",
+                          "2014-05-26T01:35:33",
+                          datetime.datetime(2014, 5, 26, 1, 35, 33, tzinfo=tz.tzutc())),
+                    param("valid_string_date_nocolon",
+                          "2014-05-26T01:35:33+0000",
+                          datetime.datetime(2014, 5, 26, 1, 35, 33, tzinfo=tz.tzutc())),
                  ])
 
 parametrize_over(TestEnforceUtil, TestEnforceUtil.is_expired_test,
