@@ -145,10 +145,9 @@ class MergableConfig(object):
 class Policy(MergableConfig):
     """Class containing a single TLS policy information for a particular e-mail domain.
     """
-    def __init__(self, data=None, pinsets=None, aliases=None, schema=util.POLICY_SCHEMA):
+    def __init__(self, data=None, aliases=None, schema=util.POLICY_SCHEMA):
     # pylint: disable=dangerous-default-value
         super(Policy, self).__init__(schema)
-        self.pinsets = pinsets
         self.aliases = aliases
         self._data = {}
         if data is not None:
@@ -190,46 +189,6 @@ class Policy(MergableConfig):
         :returns list: """
         self._set_attr('mxs', value)
 
-    # TODO: enforce https: or mailto: protocol on this string
-    @property
-    def tls_report(self):
-        """ Getter for the tls reporting endpoint for this policy
-        :returns list: """
-        return self._data.get('tls-report', None)
-
-    @tls_report.setter
-    def tls_report(self, value):
-        """ Setter for the tls reporting endpoint for this policy
-        :returns list: """
-        self._set_attr('tls-report', value)
-
-    @property
-    def pin(self):
-        """ Getter for the pinned keys for this policy
-        :returns list: """
-        return self._data.get('pin', None)
-
-    @pin.setter
-    def pin(self, value):
-        """ Setter for the pinned keys for this policy
-        :returns list: """
-        if value not in self.pinsets:
-            raise util.ConfigError(
-                "Pin {} not specified in config, or it wasn't set before policies.".format(value))
-        self._set_attr('pin', value)
-
-    @property
-    def mta_sts(self):
-        """ Getter for whether this policy supports MTA STS.
-        :returns bool: """
-        return self._data.get('mta-sts', False)
-
-    @mta_sts.setter
-    def mta_sts(self, value):
-        """ Setter for whether this policy supports MTA STS.
-        :returns bool: """
-        self._set_attr('mta-sts', value)
-
     @property
     def policy_alias(self):
         """ Getter for this policy's alias, if it exists.
@@ -261,8 +220,8 @@ class PolicyNoAlias(Policy):
 
 class Config(MergableConfig, collections.Mapping):
     """Class for retrieving properties in TLS Policy config.
-    If `pinsets` and `policy_aliases` are specified, they must be set
-    before `policies`, so policy format validation can work properly.
+    If `policy_aliases` is specified, they must be set before `policies`,
+    so policy format validation can work properly.
     """
 
     def __getitem__(self, key):
@@ -296,8 +255,7 @@ class Config(MergableConfig, collections.Mapping):
 
     def load_from_dict(self, dict_):
         """ Sets Config attributes from key/values in dict_
-        Also ensures that pinsets and aliases are parsed before
-        policies. """
+        Also ensures that aliases are parsed before policies. """
         policies = dict_.get('policies', None)
         super(Config, self).load_from_dict(
             {k: v for k, v in six.iteritems(dict_) if k != 'policies'})
@@ -362,7 +320,7 @@ class Config(MergableConfig, collections.Mapping):
     @policies.setter
     def policies(self, value):
         """ Setter for TLS policies in this configuration file.
-        If policies contains pins or refers to policy_aliases, note
+        If policies refer to policy_aliases, note
         that these fields should be set *first* so the policies can
         validate correctly.
         :returns list: """
@@ -371,20 +329,8 @@ class Config(MergableConfig, collections.Mapping):
             if isinstance(obj, Policy):
                 policies[domain] = obj
             else:
-                policies[domain] = Policy(obj, self.pinsets, self.policy_aliases)
+                policies[domain] = Policy(obj, self.policy_aliases)
         self._set_attr('policies', policies)
-
-    @property
-    def pinsets(self):
-        """ Getter for pinsets in this configuration file.
-        :returns: pinsets """
-        return self._data.get('pinsets', {})
-
-    @pinsets.setter
-    def pinsets(self, value):
-        """ Setter for pinsets in this configuration file.
-        :returns: pinsets """
-        self._set_attr('pinsets', value)
 
     @property
     def policy_aliases(self):
@@ -398,7 +344,7 @@ class Config(MergableConfig, collections.Mapping):
         :returns: policy_aliases """
         policies = {}
         for domain, obj in six.iteritems(value):
-            policies[domain] = PolicyNoAlias(obj, self.pinsets)
+            policies[domain] = PolicyNoAlias(obj)
         self._set_attr('policy-aliases', policies)
 
     def get_policy_for(self, mail_domain):
