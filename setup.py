@@ -2,7 +2,7 @@ import sys
 
 from setuptools import setup
 from setuptools import find_packages
-
+from os import path
 
 version = '0.0.1.dev0'
 
@@ -12,6 +12,10 @@ install_requires = [
     'setuptools',
     'six',
 ]
+
+this_directory = path.abspath(path.dirname(__file__))
+with open(path.join(this_directory, 'README.md'), 'rb') as f:
+    long_description = f.read().decode('utf-8-sig')
 
 setup(
     name='starttls_policy_cli',
@@ -50,12 +54,18 @@ setup(
             'pylint',
             'pytest',
             'pytest-cov',
+            # Requirements for proper packing of markdown description:
+            'setuptools>=38.6.0',
+            'wheel>=0.31.0',
+            'twine>=1.11.0',
         ]
     },
     entry_points={
         'console_scripts': [
             'starttls-policy-cli = starttls_policy_cli.main:main',
         ],
-    }
+    },
+    long_description=long_description,
+    long_description_content_type='text/markdown'
 )
 
