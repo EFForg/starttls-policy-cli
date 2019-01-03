@@ -8,6 +8,8 @@
 DEV_RELEASE_BRANCH="$1"
 PORT=4000
 
+GPG_FINGERPRINT="7ED59D88A092EBE00FE2282469DD76556E48CB51"
+
 # Release dev packages to PyPI
 version="0.0.0.dev$(date +%Y%m%d)"
 tag="v$version"
@@ -26,7 +28,7 @@ sed -i "s/^version.*/version = '$version'/" setup.py
 # Sign tagged commit
 git add -p
 git -c commit.gpgsign=true commit -m "Release $version"
-git tag --local-user "842AEA40C5BCD6E1" \
+git tag --local-user "$GPG_FINGERPRINT" \
     --sign --message "Release $version" "$tag"
 
 # Build
@@ -38,10 +40,8 @@ python setup.py bdist_wheel
 # GPG-sign wheels
 for x in dist/*.tar.gz dist/*.whl
 do
-  gpg --detach-sign --armor --sign --local-user "842AEA40C5BCD6E1" $x
+  gpg --detach-sign --armor --sign --local-user "$GPG_FINGERPRINT" $x
 done
-
-cd -
 
 mkdir "dist.$version"
 mv $root/dist "dist.$version/starttls-policy-cli"
