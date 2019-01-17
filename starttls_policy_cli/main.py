@@ -6,6 +6,7 @@ from starttls_policy_cli import configure
 
 GENERATORS = {
     "postfix": configure.PostfixGenerator,
+    "exim4": configure.EximGenerator,
 }
 
 def _argument_parser():

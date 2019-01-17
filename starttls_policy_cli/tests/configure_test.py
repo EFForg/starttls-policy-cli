@@ -13,10 +13,10 @@ class MockGenerator(configure.ConfigGenerator):
     """Mock config generator for testing"""
 
     def _generate(self, policy_list):
-        return "generated_config"
+        self._write_config("generated_config", self._config_filename)
 
-    def _generate_expired_fallback(self, policy_list):
-        return "#expired_fallback"
+    def _generate_expired_fallback(self):
+        self._write_config("#expired_fallback", self._config_filename)
 
     def _instruct_string(self):
         return "instruct_string"
@@ -103,13 +103,24 @@ test_json_expired = '{\
         }\
     }'
 
-testgen_data = [
+postfix_testgen_data = [
     param("simple_policy", test_json, "# .testing.example-recipient.com "
                                       "undefined due to testing policy\n"
                                       ".valid.example-recipient.com    "
                                       "secure match=.valid.example-recipient.com\n"),
     param("expired_policy", test_json_expired, "# Policy list is outdated. "
                                                "Falling back to opportunistic encryption.\n"),
+]
+
+
+exim_testgen_data = [
+    param("simple_policy", test_json, [
+        "# .testing.example-recipient.com: undefined due to testing policy\n"
+        ".valid.example-recipient.com:   .valid.example-recipient.com\n",
+        ".testing.example-recipient.com\n.valid.example-recipient.com\n",
+        ".testing.example-recipient.com\n.valid.example-recipient.com\n"]),
+    param("expired_policy", test_json_expired, ["# Policy list is outdated. "
+                                               "Falling back to opportunistic encryption.\n"] * 3),
 ]
 
 class TestPostfixGenerator(unittest.TestCase):
@@ -138,7 +149,26 @@ class TestPostfixGenerator(unittest.TestCase):
             os.remove(pol_filename)
         self.assertEqual(result, expected)
 
-parametrize_over(TestPostfixGenerator, TestPostfixGenerator.config_test, testgen_data)
+class TestEximGenerator(unittest.TestCase):
+    """Test Postfix config generator"""
+
+    def config_test(self, conf, expected):
+        """EximGenerator test parameterized over various policies"""
+        with TempPolicyDir(conf) as testdir:
+            generator = configure.EximGenerator(testdir)
+            generator.generate()
+            suffixes = ["", ".host", ".domain"]
+            files = [os.path.join(testdir, generator.default_filename + x) for x in suffixes]
+            results = []
+            for filename in files:
+                with open(filename) as f:
+                    results.append(f.read())
+                os.remove(filename)
+        self.assertEqual(results, expected)
+
+
+parametrize_over(TestPostfixGenerator, TestPostfixGenerator.config_test, postfix_testgen_data)
+parametrize_over(TestEximGenerator, TestEximGenerator.config_test, exim_testgen_data)
 
 if __name__ == "__main__":
     unittest.main()

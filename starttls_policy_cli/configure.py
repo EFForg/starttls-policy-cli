@@ -32,8 +32,9 @@ class ConfigGenerator(object):
             self._policy_config.load()
         return self._policy_config
 
-    def _write_config(self, result, output):
-        six.print_(result, file=output)
+    def _write_config(self, result, filename):
+        with open(filename, "w") as config_file:
+            six.print_(result, file=config_file)
 
     def _expired_warning(self):
         """Warns user about policy list expiration.
@@ -49,13 +50,12 @@ class ConfigGenerator(object):
         """Generates and dumps MTA configuration file to `policy_dir`.
         """
         policy_list = self._load_config()
-        if util.is_expired(policy_list.expires):
+        expired = util.is_expired(policy_list.expires)
+        if expired:
             self._expired_warning()
-            result = self._generate_expired_fallback(policy_list)
+            self._generate_expired_fallback()
         else:
-            result = self._generate(policy_list)
-        with open(self._config_filename, "w") as config_file:
-            self._write_config(result, config_file)
+            self._generate(policy_list)
 
     def manual_instructions(self):
         """Prints manual installation instructions to stdout.
@@ -67,11 +67,11 @@ class ConfigGenerator(object):
 
     @abc.abstractmethod
     def _generate(self, policy_list):
-        """Creates configuration file. Returns a unicode string (text to write to file)."""
+        """Creates configuration file(s) needed."""
 
     @abc.abstractmethod
-    def _generate_expired_fallback(self, policy_list):
-        """Creates configuration file for expired policy list.
+    def _generate_expired_fallback(self):
+        """Creates configuration file(s) for expired policy list.
         Returns a unicode string (text to write to file)."""
 
     @abc.abstractmethod
@@ -86,28 +86,31 @@ class ConfigGenerator(object):
     def default_filename(self):
         """The expected default filename of the generated configuration file."""
 
-def _policy_for_domain(domain, tls_policy, max_domain_len):
-    line = ("{0:%d} " % max_domain_len).format(domain)
-    if tls_policy.mode == "enforce":
-        line += " secure match="
-        line += ":".join(tls_policy.mxs)
-    elif tls_policy.mode == "testing":
-        line = "# " + line + "undefined due to testing policy"
-    return line
-
 class PostfixGenerator(ConfigGenerator):
     """Configuration generator for postfix.
     """
+
+    @staticmethod
+    def _policy_for_domain(domain, tls_policy, max_domain_len):
+        line = ("{0:%d} " % max_domain_len).format(domain)
+        if tls_policy.mode == "enforce":
+            line += " secure match="
+            line += ":".join(tls_policy.mxs)
+        elif tls_policy.mode == "testing":
+            line = "# " + line + "undefined due to testing policy"
+        return line
 
     def _generate(self, policy_list):
         policies = []
         max_domain_len = len(max(policy_list, key=len))
         for domain, tls_policy in sorted(six.iteritems(policy_list)):
-            policies.append(_policy_for_domain(domain, tls_policy, max_domain_len))
-        return "\n".join(policies)
+            policies.append(PostfixGenerator._policy_for_domain(domain, tls_policy, max_domain_len))
+        file_contents = "\n".join(policies)
+        self._write_config(file_contents, self._config_filename)
 
-    def _generate_expired_fallback(self, policy_list):
-        return "# Policy list is outdated. Falling back to opportunistic encryption."
+    def _generate_expired_fallback(self):
+        file_contents = "# Policy list is outdated. Falling back to opportunistic encryption."
+        self._write_config(file_contents, self._config_filename)
 
     def _instruct_string(self):
         filename = self._config_filename
@@ -129,3 +132,70 @@ class PostfixGenerator(ConfigGenerator):
     @property
     def default_filename(self):
         return "postfix_tls_policy"
+
+class EximGenerator(ConfigGenerator):
+    """Configuration generator for exim.
+    """
+
+    def __init__(self, policy_dir):
+        super(EximGenerator, self).__init__(policy_dir)
+        self._host_config_filename = self._config_filename + ".host"
+        self._domain_config_filename = self._config_filename + ".domain"
+
+    @staticmethod
+    def _policy_for_domain(domain, tls_policy, max_domain_len):
+        line = ("{0:%d} " % (max_domain_len + 1)).format(domain + ":")
+        if tls_policy.mode == "enforce":
+            line += ":".join(tls_policy.mxs)
+        elif tls_policy.mode == "testing":
+            line = "# " + line + "undefined due to testing policy"
+        return line
+
+    def _generate(self, policy_list):
+        policies = []
+        hosts = set([])
+        domains = set([])
+        max_domain_len = len(max(policy_list, key=len))
+        for domain, tls_policy in sorted(six.iteritems(policy_list)):
+            policies.append(EximGenerator._policy_for_domain(domain, tls_policy, max_domain_len))
+            hosts.update(tls_policy.mxs)
+            domains.add(domain)
+        self._write_config("\n".join(policies), self._config_filename)
+        self._write_config("\n".join(hosts), self._host_config_filename)
+        print("HI "  + self._domain_config_filename)
+        self._write_config("\n".join(domains), self._domain_config_filename)
+
+    def _generate_expired_fallback(self):
+        file_contents = "# Policy list is outdated. Falling back to opportunistic encryption."
+        self._write_config(file_contents, self._config_filename)
+        self._write_config(file_contents, self._host_config_filename)
+        self._write_config(file_contents, self._domain_config_filename)
+
+    def _instruct_string(self):
+        return ("\n1. Define the host and domain lists:\n"
+            "\nhostlist enforce_tls_hosts = {hosts_listpath}\n"
+            "domainlist enforce_tls_domains = {domains_listpath}\n"
+            "\n2. Then define the following manual router before the dnslookup router:\n"
+            "\ntlspolicy:\n"
+            "    transport = remote_smtp\n"
+            "    driver = manualroute\n"
+            "    domains = +enforce_tls_domains\n"
+            "    route_list = {route_listpath}\n"
+            "    same_domain_copy_routing = yes\n"
+            "    host_find_failed = ignore\n"
+            "\n3. Set the following config options for the remote_smtp transport:\n"
+            "\nhosts_require_tls = +enforce_tls_hosts\n"
+            "tls_verify_hosts = +enforce_tls_hosts\n"
+            "tls_verify_certificates = MAIN_TLS_VERIFY_CERTIFICATES\n"
+            "\nThen restart exim.\n").format(
+                domains_listpath=os.path.abspath(self._domain_config_filename),
+                hosts_listpath=  os.path.abspath(self._host_config_filename),
+                route_listpath=  os.path.abspath(self._config_filename))
+
+    @property
+    def mta_name(self):
+        return "Exim"
+
+    @property
+    def default_filename(self):
+        return "exim_tls_policy"
