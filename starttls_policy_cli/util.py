@@ -117,14 +117,7 @@ POLICY_SCHEMA = {
             'default': [],
             },
         # TODO (#50) Validate reporting endpoint as https: or mailto:
-        'tls-report': partial(enforce_type, six.string_types),
-        'pin': partial(enforce_type, six.string_types),
         'policy-alias': partial(enforce_type, six.string_types),
-        'mta-sts': partial(enforce_type, bool),
-}
-
-PINSET_SCHEMA = {
-    'static-spki-hashes': partial(enforce_list, partial(enforce_type, six.string_types))
 }
 
 CONFIG_SCHEMA = {
@@ -139,5 +132,4 @@ CONFIG_SCHEMA = {
             },
         'policies': partial(enforce_fields, partial(enforce_type, object)),
         'policy-aliases': partial(enforce_fields, partial(enforce_type, object)),
-        'pinsets': partial(enforce_fields, partial(enforce_type, object))
 }

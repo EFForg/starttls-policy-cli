@@ -18,8 +18,7 @@ test_json = '{\
             ".valid.example-recipient.com": {\
                 "min-tls-version": "TLSv1.1",\
                     "mode": "enforce",\
-                    "mxs": [".valid.example-recipient.com"],\
-                    "tls-report": "https://tls-rpt.example-recipient.org/api/report"\
+                    "mxs": [".valid.example-recipient.com"]\
             }\
         }\
     }'
@@ -178,29 +177,21 @@ class TestConfig(unittest.TestCase):
         conf.policies = {'valid': {'policy-alias': 'valid'}}
         self.assertEqual(conf.get_policy_for('valid').min_tls_version, 'TLSv1.2')
 
-    def test_set_pins_for_policy(self):
-        conf = policy.Config()
-        conf.pinsets = {'valid': 'lol a pin'}
-        with self.assertRaises(util.ConfigError):
-            conf.policies = {'invalid': {'pin': 'invalid'}}
-        conf.policies = {'valid': {'pin': 'valid'}}
-        self.assertEqual(conf.get_policy_for('valid').pin, 'valid')
-
     def test_iter_policies_aliased(self):
         conf = policy.Config()
-        conf.policy_aliases = {'valid': {'tls-report': 'https://tls.report'}}
+        conf.policy_aliases = {'valid': {'mode': 'enforce'}}
         conf.policies = {'valid1': {'policy-alias': 'valid'},
                          'valid2': {'policy-alias': 'valid'}}
         for val in conf:
-            self.assertEqual(conf[val].tls_report, 'https://tls.report')
+            self.assertEqual(conf[val].mode, 'enforce')
 
     def test_iter_policies(self):
         conf = policy.Config()
-        sample_policy = {'tls-report': 'https://tls.report'}
+        sample_policy = {'mode': 'enforce'}
         conf.policies = {'valid1': sample_policy,
                          'valid2': sample_policy}
         for val in conf:
-            self.assertEqual(conf[val].tls_report, 'https://tls.report')
+            self.assertEqual(conf[val].mode, 'enforce')
 
     def test_no_aliasing_in_alias(self):
         conf = policy.Config()
@@ -261,15 +252,6 @@ class TestPolicy(unittest.TestCase):
         p.mode = 'enforce'
         self.assertEqual(p.mode, 'enforce')
 
-    def test_pins_valid(self):
-        p = policy.Policy({}, pinsets={'valid': {}})
-        with self.assertRaises(util.ConfigError):
-            p.pin = 'invalid'
-        with self.assertRaises(util.ConfigError):
-            policy.Policy({'pin': 'invalid'}, pinsets={'valid': {}})
-        p.pin = 'valid'
-        self.assertEqual(p.pin, 'valid')
-
     def test_alias_valid(self):
         p = policy.Policy({}, aliases={'valid': self.sample_policy})
         with self.assertRaises(util.ConfigError):
@@ -278,21 +260,6 @@ class TestPolicy(unittest.TestCase):
             policy.Policy({'policy-alias': 'invalid'}, aliases={'valid': self.sample_policy})
         p.policy_alias = 'valid'
         self.assertEqual(p.policy_alias, 'valid')
-
-    def test_mta_sts(self):
-        p = policy.Policy({})
-        with self.assertRaises(util.ConfigError):
-            p.mta_sts = 'yes'
-        self.assertFalse(p.mta_sts)
-        p.mta_sts = True
-        self.assertTrue(p.mta_sts)
-
-    def test_tls_report(self):
-        p = policy.Policy({})
-        with self.assertRaises(util.ConfigError):
-            p.tls_report = False
-        p.tls_rpt = 'https://fake.reporting.endpoint'
-        self.assertEqual(p.tls_rpt, 'https://fake.reporting.endpoint')
 
     def test_mxs(self):
         p = policy.Policy({})
