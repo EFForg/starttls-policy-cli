@@ -1,5 +1,4 @@
 """ Policy config wrapper """
-import collections
 import logging
 import datetime
 import io
@@ -7,6 +6,11 @@ import json
 import six
 from starttls_policy_cli import util
 from starttls_policy_cli import constants
+
+try:
+    from collections.abc import Mapping
+except ImportError:
+    from collections import Mapping
 
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.StreamHandler())
@@ -218,7 +222,7 @@ class PolicyNoAlias(Policy):
         # pylint: disable=unused-argument
         raise util.ConfigError('PolicyNoAlias object cannot have policy-alias field!')
 
-class Config(MergableConfig, collections.Mapping):
+class Config(MergableConfig, Mapping):
     """Class for retrieving properties in TLS Policy config.
     If `policy_aliases` is specified, they must be set before `policies`,
     so policy format validation can work properly.
