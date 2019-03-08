@@ -16,7 +16,6 @@ test_json = '{\
         "timestamp": "2014-05-26T01:35:33+0000",\
         "policies": {\
             ".valid.example-recipient.com": {\
-                "min-tls-version": "TLSv1.1",\
                     "mode": "enforce",\
                     "mxs": [".valid.example-recipient.com"]\
             }\
@@ -166,8 +165,8 @@ class TestConfig(unittest.TestCase):
         with self.assertRaises(util.ConfigError):
             policy.Config().policies = {'invalid': invalid_policy}
         conf = policy.Config()
-        conf.policies = {'valid': {}}
-        self.assertEqual(conf.get_policy_for('valid').min_tls_version, 'TLSv1.2')
+        conf.policies = {'valid': {'mxs': ['example.com']}}
+        self.assertEqual(conf.get_policy_for('valid').mxs, ['example.com'])
 
     def test_set_aliased_policy(self):
         conf = policy.Config()
@@ -175,7 +174,7 @@ class TestConfig(unittest.TestCase):
         with self.assertRaises(util.ConfigError):
             conf.policies = {'invalid': {'policy-alias': 'invalid'}}
         conf.policies = {'valid': {'policy-alias': 'valid'}}
-        self.assertEqual(conf.get_policy_for('valid').min_tls_version, 'TLSv1.2')
+        self.assertEqual(conf.get_policy_for('valid').mode, 'testing')
 
     def test_iter_policies_aliased(self):
         conf = policy.Config()
@@ -226,22 +225,9 @@ class TestPolicy(unittest.TestCase):
         self.assertFalse('eff.org' in new_conf.mxs)
         self.assertTrue('example.com' in new_conf.mxs)
 
-    def test_tls_version_default(self):
-        p = policy.Policy({})
-        self.assertEqual(p.min_tls_version, 'TLSv1.2')
-
     def test_mode_default(self):
         p = policy.Policy({})
         self.assertEqual(p.mode, 'testing')
-
-    def test_tls_version_valid(self):
-        with self.assertRaises(util.ConfigError):
-            policy.Policy({'min-tls-version': 'SSLv3'})
-        p = policy.Policy({})
-        with self.assertRaises(util.ConfigError):
-            p.min_tls_version = 'SSLv3'
-        p.min_tls_version = 'TLSv1.1'
-        self.assertEqual(p.min_tls_version, 'TLSv1.1')
 
     def test_mode_valid(self):
         p = policy.Policy({})
