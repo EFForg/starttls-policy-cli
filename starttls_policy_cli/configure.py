@@ -120,7 +120,7 @@ class PostfixGenerator(ConfigGenerator):
         if mode == "enforce" or self._enforce_testing and mode == "testing":
             line += " secure match="
             line += ":".join(tls_policy.mxs)
-        elif tls_policy.mode == "testing":
+        elif mode == "testing":
             line = "# " + line + "undefined due to testing policy"
         return line
 
