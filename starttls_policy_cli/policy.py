@@ -8,7 +8,7 @@ from starttls_policy_cli import util
 from starttls_policy_cli import constants
 
 try:
-    # Python 3+
+    # Python 3.3+
     from collections.abc import Mapping
 except ImportError:
     from collections import Mapping
