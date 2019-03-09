@@ -210,7 +210,6 @@ class PolicyNoAlias(Policy):
     @property
     def policy_alias(self):
         """ This type of policy can't be aliased. Returns None."""
-        pass
 
     @policy_alias.setter
     def policy_alias(self, value):
@@ -238,6 +237,7 @@ class Config(MergableConfig, collections.Mapping):
             yield domain
 
     def keys(self):
+        """ Returns iterable over policies even if this attribute is not set """
         if self.policies is None:
             return set([])
         return self.policies.keys()

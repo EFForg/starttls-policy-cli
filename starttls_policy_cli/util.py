@@ -103,20 +103,14 @@ TLS_VERSIONS = ('TLSv1', 'TLSv1.1', 'TLSv1.2', 'TLSv1.3')
 ENFORCE_MODES = ('testing', 'enforce')
 
 POLICY_SCHEMA = {
-        'min-tls-version': {
-            'enforce': partial(enforce_in, TLS_VERSIONS),
-            'default': 'TLSv1.2',
-            },
         'mode': {
             'enforce': partial(enforce_in, ENFORCE_MODES),
             'default': 'testing',
             },
-        # TODO (#50) Validate mxs as FQDNs (using public suffix list)
         'mxs': {
             'enforce': partial(enforce_list, partial(enforce_type, six.string_types)),
             'default': [],
             },
-        # TODO (#50) Validate reporting endpoint as https: or mailto:
         'policy-alias': partial(enforce_type, six.string_types),
 }
 
