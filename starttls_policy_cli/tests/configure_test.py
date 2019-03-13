@@ -104,11 +104,15 @@ test_json_expired = '{\
     }'
 
 testgen_data = [
-    param("simple_policy", test_json, "# .testing.example-recipient.com "
+    param("simple_policy", test_json, False, "# .testing.example-recipient.com "
                                       "undefined due to testing policy\n"
                                       ".valid.example-recipient.com    "
                                       "secure match=.valid.example-recipient.com\n"),
-    param("expired_policy", test_json_expired, "# Policy list is outdated. "
+    param("simple_policy_early", test_json, True, ".testing.example-recipient.com  "
+                                      "secure match=.testing.example-recipient.com\n"
+                                      ".valid.example-recipient.com    "
+                                      "secure match=.valid.example-recipient.com\n"),
+    param("expired_policy", test_json_expired, False, "# Policy list is outdated. "
                                                "Falling back to opportunistic encryption.\n"),
 ]
 
@@ -127,10 +131,10 @@ class TestPostfixGenerator(unittest.TestCase):
         self.assertTrue("postfix reload" in instructions)
         self.assertTrue(generator.default_filename in instructions)
 
-    def config_test(self, conf, expected):
+    def config_test(self, conf, enforce_testing, expected):
         """PostfixGenerator test parameterized over various policies"""
         with TempPolicyDir(conf) as testdir:
-            generator = configure.PostfixGenerator(testdir)
+            generator = configure.PostfixGenerator(testdir, enforce_testing)
             generator.generate()
             pol_filename = os.path.join(testdir, generator.default_filename)
             with open(pol_filename) as pol_file:

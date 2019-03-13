@@ -24,21 +24,21 @@ class TestArguments(unittest.TestCase):
 
     def test_generate_arg(self):
         # pylint: disable=protected-access
-        sys.argv = ["_", "--generate", "lol"]
+        sys.argv = ["_", "--generate", "postfix"]
         parser = main._argument_parser()
         arguments = parser.parse_args()
-        self.assertEqual(arguments.generate, "lol")
+        self.assertEqual(arguments.generate, "postfix")
 
     def test_default_dir(self):
         # pylint: disable=protected-access
-        sys.argv = ["_", "--generate", "lol"]
+        sys.argv = ["_", "--generate", "postfix"]
         parser = main._argument_parser()
         arguments = parser.parse_args()
         self.assertEqual(arguments.policy_dir, "/etc/starttls-policy/")
 
     def test_policy_dir(self):
         # pylint: disable=protected-access
-        sys.argv = ["_", "--generate", "lol", "--policy-dir", "lmao"]
+        sys.argv = ["_", "--generate", "postfix", "--policy-dir", "lmao"]
         parser = main._argument_parser()
         arguments = parser.parse_args()
         self.assertEqual(arguments.policy_dir, "lmao")
@@ -50,7 +50,7 @@ class TestPerform(unittest.TestCase):
         sys.argv = ["_", "--generate", "lmao"]
         parser = main._argument_parser()
         parser.error = mock.MagicMock(side_effect=Exception)
-        self.assertRaises(Exception, main._perform, parser.parse_args(), parser)
+        self.assertRaises(Exception, parser.parse_args)
 
     @mock.patch("starttls_policy_cli.main._ensure_directory")
     def test_generate(self, ensure_directory):
@@ -58,7 +58,7 @@ class TestPerform(unittest.TestCase):
         main.GENERATORS = {"exists": mock.MagicMock()}
         sys.argv = ["_", "--generate", "exists"]
         parser = main._argument_parser()
-        main._perform(parser.parse_args(), parser)
+        main._generate(parser.parse_args())
         self.assertTrue(main.GENERATORS["exists"].called_with("/etc/starttls-policy"))
 
     @mock.patch("os.path.exists")

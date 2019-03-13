@@ -20,8 +20,9 @@ class ConfigGenerator(object):
     """
     __metaclass__ = abc.ABCMeta
 
-    def __init__(self, policy_dir):
+    def __init__(self, policy_dir, enforce_testing=False):
         self._policy_dir = policy_dir
+        self._enforce_testing = enforce_testing
         self._policy_filename = os.path.join(self._policy_dir, constants.POLICY_FILENAME)
         self._config_filename = os.path.join(self._policy_dir, self.default_filename)
         self._policy_config = None
@@ -86,15 +87,6 @@ class ConfigGenerator(object):
     def default_filename(self):
         """The expected default filename of the generated configuration file."""
 
-def _policy_for_domain(domain, tls_policy, max_domain_len):
-    line = ("{0:%d} " % max_domain_len).format(domain)
-    if tls_policy.mode == "enforce":
-        line += " secure match="
-        line += ":".join(tls_policy.mxs)
-    elif tls_policy.mode == "testing":
-        line = "# " + line + "undefined due to testing policy"
-    return line
-
 class PostfixGenerator(ConfigGenerator):
     """Configuration generator for postfix.
     """
@@ -103,7 +95,7 @@ class PostfixGenerator(ConfigGenerator):
         policies = []
         max_domain_len = len(max(policy_list, key=len))
         for domain, tls_policy in sorted(six.iteritems(policy_list)):
-            policies.append(_policy_for_domain(domain, tls_policy, max_domain_len))
+            policies.append(self._policy_for_domain(domain, tls_policy, max_domain_len))
         return "\n".join(policies)
 
     def _generate_expired_fallback(self, policy_list):
@@ -121,6 +113,16 @@ class PostfixGenerator(ConfigGenerator):
             " hash:{abs_path}\"\n\n"
             "And finally:\n\n"
             "postfix reload\n").format(abs_path=abs_path, filename=filename)
+
+    def _policy_for_domain(self, domain, tls_policy, max_domain_len):
+        line = ("{0:%d} " % max_domain_len).format(domain)
+        mode = tls_policy.mode
+        if mode == "enforce" or self._enforce_testing and mode == "testing":
+            line += " secure match="
+            line += ":".join(tls_policy.mxs)
+        elif mode == "testing":
+            line = "# " + line + "undefined due to testing policy"
+        return line
 
     @property
     def mta_name(self):
