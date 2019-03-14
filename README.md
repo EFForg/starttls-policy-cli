@@ -1,6 +1,6 @@
 # starttls-policy-cli Python package
 
-Run `pip install starttls_policy_cli` to install!
+Run `pip install starttls-policy-cli` to install!
 
 ### Generating a configuration file
 
